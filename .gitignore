@@ -1,0 +1,10 @@
+node_modules/
+.DS_Store
+
+# Per-tool assistant working notes stay local. The SHIPPED agent guide is
+# AGENTS.md (cross-agent, vendor-neutral); CLAUDE.md is a local working
+# artifact and is never committed to a fleet repo.
+CLAUDE.md
+CLAUDE.local.md
+GEMINI.md
+docs/superpowers/
