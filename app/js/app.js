@@ -7,6 +7,13 @@ import {
   belowIntervals, intersectIntervals, PLANET_NAMES,
 } from "./astro.js";
 import { SkyMap } from "./skymap.js";
+import { textScale } from "./labels.js";
+import { scrub, shownJd, timeView } from "./time-mode.js";
+import { darkness, bestWindowNote } from "./tonight-copy.js";
+import {
+  sectionFor, resolveGpsFix, resolveTypedLocation, createLocator,
+  STATUS, gpsFailure, invalidTyped,
+} from "./location-flow.js";
 
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = "nightglass.location";
@@ -15,7 +22,8 @@ const MODE_KEY = "nightglass.mode";
 const state = {
   location: loadLocation(),
   mode: localStorage.getItem(MODE_KEY) === "night" ? "night" : "normal",
-  offsetMin: 0, // sky-map time offset from now
+  time: scrub(null, 0), // sky-map time: {offsetMin, anchorJd}; see time-mode.js
+  editing: false, // the change-location form is open over a saved location
 };
 
 function loadLocation() {
@@ -91,15 +99,13 @@ function renderTonight(t, lat, lon) {
   $("sunset-time").textContent = t.sunset ? fmtTime(t.sunset) : "—";
   $("sunrise-time").textContent = t.sunrise ? fmtTime(t.sunrise) : "—";
 
-  const darkEl = $("dark-time");
-  if (t.dark.length) {
-    darkEl.textContent = `${fmtTime(t.dark[0].start)} – ${fmtTime(t.dark[0].end)}`;
-    $("dark-label").textContent =
-      t.darkKind === "astronomical" ? "True darkness" : `Darkest (${t.darkKind} twilight)`;
-  } else {
-    darkEl.textContent = "no darkness";
-    $("dark-label").textContent = "Midnight sun season";
-  }
+  const d = darkness(t.darkKind, t.dark.length > 0);
+  $("dark-label").textContent = d.label;
+  $("dark-time").textContent = t.dark.length
+    ? `${fmtTime(t.dark[0].start)} – ${fmtTime(t.dark[0].end)}`
+    : d.value;
+  $("dark-note").textContent = d.explain ?? "";
+  $("dark-note").hidden = !d.explain;
 
   const rise = t.moonEvents.find((e) => e.rising);
   const set = t.moonEvents.find((e) => !e.rising);
@@ -115,7 +121,7 @@ function renderTonight(t, lat, lon) {
     const span = t.best.end - t.best.start;
     bestEl.innerHTML =
       `<strong>Best stargazing: ${fmtTime(t.best.start)} – ${fmtTime(t.best.end)}</strong>` +
-      `<span>${fmtDuration(span)} of ${t.darkKind === "astronomical" ? "moon-free true darkness" : "moon-free darkness"}</span>`;
+      `<span>${fmtDuration(span)} ${bestWindowNote(t.darkKind)}</span>`;
   } else if (t.dark.length) {
     bestEl.innerHTML =
       `<strong>Moon is up during dark hours</strong>` +
@@ -178,7 +184,7 @@ const skymap = new SkyMap($("skymap"));
 function renderMap() {
   if (!state.location) return;
   const { lat, lon } = state.location;
-  const jd = julianDate(new Date()) + state.offsetMin / 1440;
+  const jd = shownJd(state.time, julianDate(new Date()));
   const bodies = PLANET_NAMES.map((name) => {
     const p = planetPosition(name, jd);
     return { name, ra: p.ra, dec: p.dec, kind: "planet" };
@@ -186,24 +192,38 @@ function renderMap() {
   const m = moonPosition(jd);
   const illum = moonIllumination(jd);
   bodies.push({ name: "Moon", ra: m.ra, dec: m.dec, kind: "moon", moonFraction: illum.fraction });
-  skymap.draw({ jd, lat, lon, mode: state.mode, bodies });
-
+  // The chart's labels follow the reader's text size. Read the root element:
+  // body is pinned to 16 px, so it never reflects the phone's setting.
+  const scale = textScale(parseFloat(getComputedStyle(document.documentElement).fontSize));
   const shown = dateFromJD(jd);
-  $("map-time").textContent = state.offsetMin === 0
-    ? "Now"
-    : timeFmt.format(shown) + (shown.getDate() !== new Date().getDate() ? " (tomorrow)" : "");
+  const view = timeView({
+    scrubbed: state.time.offsetMin !== 0,
+    time: timeFmt.format(shown),
+    tomorrow: shown.getDate() !== new Date().getDate(),
+  });
+  skymap.draw({ jd, lat, lon, mode: state.mode, bodies, scale, caption: view.caption });
+
+  $("map-time").textContent = view.readout;
+  $("sky").classList.toggle("scrubbed", !view.backHidden);
+  $("time-now").hidden = view.backHidden;
+  $("time-now").textContent = view.backLabel;
 }
 
 // ------------------------------------------------------------- wiring
 
+// Which section is visible is decided by the user's actions (save, cancel,
+// tapping the chip), never by a recompute — so the 5-minute timer cannot
+// close the editor and throw away half-typed coordinates.
+function showSection() {
+  const section = sectionFor({ hasLocation: !!state.location, editing: state.editing });
+  $("setup").hidden = section !== "setup";
+  $("content").hidden = section !== "content";
+  $("cancel-edit").hidden = !state.location;
+}
+
 function refresh() {
-  if (!state.location) {
-    $("setup").hidden = false;
-    $("content").hidden = true;
-    return;
-  }
-  $("setup").hidden = true;
-  $("content").hidden = false;
+  showSection();
+  if (!state.location) return;
   const { lat, lon } = state.location;
   const t = computeTonight(lat, lon);
   renderTonight(t, lat, lon);
@@ -223,40 +243,91 @@ $("mode-toggle").addEventListener("click", () => {
   applyMode();
 });
 
+// A status line shows {kind, title?, text}, or nothing when given null.
+function setStatus(id, status) {
+  const el = $(id);
+  el.classList.toggle("error", status?.kind === "error");
+  el.classList.toggle("info", status?.kind === "info");
+  el.querySelector(".status-title").textContent = status?.title ?? "";
+  el.querySelector(".status-text").textContent = status?.text ?? "";
+}
+
+function clearStatuses() {
+  setStatus("setup-status", null);
+  setStatus("form-status", null);
+}
+
+const locator = createLocator(navigator.geolocation);
+let typedSinceLocate = false; // lat/lon edited while a fix was on its way
+
+function stopLocating() {
+  locator.cancel();
+  $("cancel-locate").hidden = true;
+}
+
 $("use-gps").addEventListener("click", () => {
-  const status = $("setup-status");
-  status.textContent = "Locating…";
-  navigator.geolocation.getCurrentPosition(
+  setStatus("setup-status", STATUS.locating);
+  typedSinceLocate = false;
+  $("cancel-locate").hidden = false;
+  locator.locate(
     (pos) => {
+      $("cancel-locate").hidden = true;
       // Rounded to ~1 km — plenty for astronomy, and less precise to store.
-      saveLocation({
-        lat: Math.round(pos.coords.latitude * 100) / 100,
-        lon: Math.round(pos.coords.longitude * 100) / 100,
+      const loc = resolveGpsFix(pos.coords, {
+        name: $("name-input").value.trim(),
+        typedSinceLocate,
       });
-      status.textContent = "";
+      if (!loc) {
+        setStatus("setup-status", STATUS.keptTyped);
+        return;
+      }
+      saveLocation(loc);
+      clearStatuses();
+      state.editing = false;
       refresh();
     },
-    () => { status.textContent = "Couldn’t get a fix — enter coordinates below."; },
+    (err) => {
+      $("cancel-locate").hidden = true;
+      setStatus("setup-status", gpsFailure(err));
+    },
     { timeout: 15000 }
   );
 });
 
+$("cancel-locate").addEventListener("click", () => {
+  stopLocating();
+  setStatus("setup-status", null);
+});
+
+for (const id of ["lat-input", "lon-input"]) {
+  $(id).addEventListener("input", () => {
+    if (locator.pending) typedSinceLocate = true;
+  });
+}
+
 $("manual-form").addEventListener("submit", (e) => {
   e.preventDefault();
-  const lat = parseFloat($("lat-input").value);
-  const lon = parseFloat($("lon-input").value);
-  if (Number.isFinite(lat) && Number.isFinite(lon) &&
-      Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
-    saveLocation({ lat, lon, name: $("name-input").value.trim() || undefined });
+  // Rounded to ~1 km before storage, exactly like a GPS fix (ADR-0005).
+  const loc = resolveTypedLocation({
+    lat: parseFloat($("lat-input").value),
+    lon: parseFloat($("lon-input").value),
+    name: $("name-input").value.trim(),
+  });
+  if (loc) {
+    stopLocating(); // a save supersedes any fix still on its way
+    saveLocation(loc);
+    clearStatuses();
+    state.editing = false;
     refresh();
   } else {
-    $("setup-status").textContent = "Latitude must be −90…90, longitude −180…180.";
+    setStatus("form-status", invalidTyped());
   }
 });
 
 $("location-chip").addEventListener("click", () => {
-  $("setup").hidden = false;
-  $("content").hidden = true;
+  state.editing = true;
+  clearStatuses(); // no stale message from a past visit
+  showSection();
   if (state.location) {
     $("lat-input").value = state.location.lat;
     $("lon-input").value = state.location.lon;
@@ -264,13 +335,20 @@ $("location-chip").addEventListener("click", () => {
   }
 });
 
+$("cancel-edit").addEventListener("click", () => {
+  stopLocating();
+  state.editing = false;
+  clearStatuses();
+  showSection();
+});
+
 $("time-slider").addEventListener("input", (e) => {
-  state.offsetMin = Number(e.target.value);
+  state.time = scrub(state.time, Number(e.target.value), julianDate(new Date()));
   renderMap();
 });
 
 $("time-now").addEventListener("click", () => {
-  state.offsetMin = 0;
+  state.time = scrub(state.time, 0);
   $("time-slider").value = "0";
   renderMap();
 });

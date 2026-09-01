@@ -22,8 +22,9 @@ explanation). Decisions live in [docs/adr/](docs/adr/).
 
 ## What it does
 
-- **Tonight** — sunset and sunrise, the *true darkness* window (astronomical
-  twilight, falling back to nautical/civil at midnight-sun latitudes), moonrise,
+- **Tonight** — sunset and sunrise, the *fully dark* window (the sun 18° down;
+  where it never gets that low, "darkest it gets" with one line naming the
+  nautical or civil twilight and saying what it means), moonrise,
   moonset, phase and illumination, and the headline campers actually want: the
   **best moon-free dark window** for stargazing.
 - **Sky map** — a full-sky chart of 1,600+ naked-eye stars, constellation

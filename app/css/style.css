@@ -11,6 +11,7 @@
   --banner-bg: #16233f;
   --banner-edge: #2b3f6b;
   --good: #a8d5a2;
+  --error: #ff939c;
 }
 
 body.night {
@@ -18,11 +19,12 @@ body.night {
   --panel: #120404;
   --panel-edge: #2a0a0a;
   --text: #e05555;
-  --text-dim: #8a3030;
+  --text-dim: #d65050;
   --accent: #ff6b6b;
   --banner-bg: #1a0505;
   --banner-edge: #3d0f0f;
-  --good: #e05555;
+  --good: #ff6b6b;
+  --error: #ffa0a0; /* a lighter tint: red is spent at night, so the icon, word and border carry it */
 }
 
 * { box-sizing: border-box; }
@@ -119,12 +121,11 @@ section {
 .stats .moon { grid-column: 1 / -1; }
 .stats dt {
   color: var(--text-dim);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 0.85rem;
 }
 .stats dd { margin: 2px 0 0; font-size: 1.05rem; }
 .stats .sub { font-size: 0.85rem; color: var(--text-dim); }
+#dark-note { margin: 10px 0 0; font-size: 0.85rem; color: var(--text-dim); }
 
 #moon-icon {
   --lit: 1;
@@ -170,6 +171,10 @@ section {
   color: var(--text-dim);
   font-size: 0.9rem;
 }
+/* Showing a time other than now: the readout and the section say so. */
+#sky.scrubbed { border-color: var(--accent); }
+#sky.scrubbed .time-controls output { color: var(--text); font-weight: 600; }
+#time-now[hidden] { display: none; }
 
 #planet-list { list-style: none; margin: 0; padding: 0; }
 #planet-list li { padding: 6px 0; border-bottom: 1px solid var(--panel-edge); }
@@ -209,7 +214,17 @@ button.primary:hover, #manual-form button:hover { border-color: var(--accent); }
   font-size: 1rem;
 }
 
-#setup-status { color: var(--text-dim); min-height: 1.2em; }
+.status { color: var(--text-dim); min-height: 1.2em; margin: 0 0 8px; }
+.status-icon { width: 1.1em; height: 1.1em; vertical-align: -0.2em; margin-right: 6px; flex: none; }
+.status:not(.error) .status-icon { display: none; }
+.status.error {
+  color: var(--error);
+  border: 1px solid var(--error);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.status-title:empty { display: none; }
 
 footer { color: var(--text-dim); font-size: 0.85rem; margin-top: 20px; }
 footer .fine { font-size: 0.72rem; }

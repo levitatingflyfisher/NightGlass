@@ -46,6 +46,7 @@ the way Parlour and Trellis do. See the scorecard row in
 
 - **[VISION.md](../VISION.md)** — the one idea, what this must never become,
   and the honest scorecard.
-- **[Architecture decisions](adr/)** — five records covering on-device
+- **[Personas](explanation/personas.md)**: who agents play when they test the UI, with scenarios.
+- **[Architecture decisions](adr/)** — six records covering on-device
   computation, the vanilla-JS choice, the shipped catalog, ephemeris
-  validation, and location rounding.
+  validation, location rounding, and why there is no light theme.

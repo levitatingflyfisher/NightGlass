@@ -30,9 +30,10 @@ technically-dark sky with the moon up shows a fraction of the stars.
 Underneath it:
 
 - **Sunset** and **sunrise** — the bookends.
-- **True darkness** — astronomical twilight, when the sun is 18° down. At high
-  latitudes in summer that never happens, so NightGlass falls back to nautical
-  or civil twilight and says which it used rather than pretending.
+- **Fully dark** — the end of astronomical twilight, when the sun is 18° down.
+  At high latitudes in summer that never happens, so the label becomes
+  **Darkest it gets**, and a line underneath names the nautical or civil
+  twilight it reached and says what that means, rather than pretending.
 - **Moonrise, moonset, phase and illumination** — how much light you are
   contending with, and when.
 

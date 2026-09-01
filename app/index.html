@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0b0f1a">
-  <meta name="description" content="A calm, local-first stargazing companion for family camping trips. Everything is computed on your device — nothing leaves it.">
-  <title>NightGlass</title>
+  <meta name="description" content="Offline star chart and stargazing times for family camping trips. The sky is computed on your device, and nothing about you leaves it.">
+  <title>Offline star chart and stargazing times: NightGlass</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -28,6 +28,8 @@
     <p>Your location never leaves this device — it is only used to compute the
       sky above you, right here.</p>
     <button id="use-gps" class="primary">Use my location</button>
+    <button type="button" id="cancel-locate" class="chip" hidden>Cancel locating</button>
+    <p id="setup-status" class="status" role="status"><svg class="status-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v6M12 16.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><strong class="status-title"></strong> <span class="status-text"></span></p>
     <form id="manual-form">
       <div class="row">
         <label>Latitude <input id="lat-input" type="number" step="0.01" min="-90" max="90" required placeholder="44.60"></label>
@@ -35,8 +37,9 @@
       </div>
       <label>Place name (optional) <input id="name-input" type="text" maxlength="40" placeholder="Yellowstone camp"></label>
       <button type="submit">Set location</button>
+      <button type="button" id="cancel-edit" hidden>Cancel</button>
+      <p id="form-status" class="status" role="status"><svg class="status-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v6M12 16.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><strong class="status-title"></strong> <span class="status-text"></span></p>
     </form>
-    <p id="setup-status" role="status"></p>
   </section>
 
   <main id="content" hidden>
@@ -48,7 +51,7 @@
       <div id="best-window" class="banner"></div>
       <dl class="stats">
         <div><dt>Sunset</dt><dd id="sunset-time"></dd></div>
-        <div><dt id="dark-label">True darkness</dt><dd id="dark-time"></dd></div>
+        <div><dt id="dark-label">Fully dark</dt><dd id="dark-time"></dd></div>
         <div><dt>Sunrise</dt><dd id="sunrise-time"></dd></div>
         <div class="moon">
           <dt>Moon</dt>
@@ -59,6 +62,7 @@
           </dd>
         </div>
       </dl>
+      <p id="dark-note" class="sub" hidden></p>
     </section>
 
     <section id="sky" aria-labelledby="sky-h">
@@ -68,7 +72,7 @@
       </div>
       <canvas id="skymap" aria-label="Star chart of the sky above you"></canvas>
       <div class="time-controls">
-        <button id="time-now">Now</button>
+        <button id="time-now" hidden>Back to now</button>
         <input id="time-slider" type="range" min="0" max="720" step="10" value="0"
                aria-label="Show the sky later tonight">
         <output id="map-time">Now</output>
@@ -78,13 +82,15 @@
     <section id="planets" aria-labelledby="planets-h">
       <h2 id="planets-h">Naked-eye planets</h2>
       <ul id="planet-list"></ul>
-      <p id="planets-note" class="sub" hidden></p>
+      <p id="planets-note" class="sub" hidden>None of the five naked-eye planets climbs clear of the
+        horizon after dusk tonight, so the sky is all stars.</p>
     </section>
   </main>
 
   <footer>
-    <p>Everything is computed on this device. NightGlass makes <strong>no network
-      requests</strong> — it works with no signal at all.</p>
+    <p><strong>Nothing about you leaves this device.</strong> The sky is computed
+      here, and after the first visit NightGlass works with no signal at all: no
+      account, no service, nothing to ask.</p>
     <p class="fine">Star data: <a href="https://github.com/ofrohn/d3-celestial">d3-celestial</a>
       (BSD-3-Clause) / HYG database. NightGlass is free software (MIT), part of the
       OpenHearth family.</p>

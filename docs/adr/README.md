@@ -15,3 +15,4 @@ reasonably arrive tomorrow and say "why on earth is it like this?", it does.
 | [0003](0003-ship-a-trimmed-star-catalog.md) | Ship a trimmed star catalog, generated and checked in |
 | [0004](0004-validate-ephemeris-against-a-second-implementation.md) | Validate the ephemeris against an independent implementation |
 | [0005](0005-round-location-at-capture.md) | Round the location at capture, not at use |
+| [0006](0006-no-light-theme.md) | Two palettes, dark and red night; no light theme, no "follow the phone" |

@@ -1,7 +1,7 @@
 {
-  "name": "NightGlass",
+  "name": "NightGlass: offline star chart",
   "short_name": "NightGlass",
-  "description": "A calm, local-first stargazing companion for family camping trips.",
+  "description": "Offline star chart and stargazing times for family camping trips, computed on your device.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0b0f1a",

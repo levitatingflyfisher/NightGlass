@@ -38,6 +38,12 @@ that could reach the network.
   pass them in.
 - **`app/js/data.js` is generated.** Never hand-edit; change
   `tools/generate_data.py` and regenerate (provenance is documented there).
+- **Bump `CACHE` in `app/sw.js` in every commit that changes a shipped file,
+  and list every new file in `ASSETS`.** The worker serves cache-first, so a
+  family who installed the app and then drove out of signal keeps the old
+  version for as long as the old cache name stands. `test/claims.test.mjs`
+  fails if a shipped file is missing from `ASSETS`; nothing can check that you
+  bumped the name, so the deploy list below starts with it.
 
 ## Where things are
 
@@ -45,10 +51,11 @@ that could reach the network.
 |---|---|
 | Ephemeris math (sun/moon/planets, rise/set, twilight) | `app/js/astro.js` |
 | Star chart rendering & projection | `app/js/skymap.js` |
+| Chart label size (follows the reader's text size) & collision layout | `app/js/labels.js` (pure; `test/labels.test.mjs` runs the real catalog through it) |
 | UI, tonight panel, planets list, location, night mode | `app/js/app.js` |
 | Star/constellation catalog (generated) | `app/js/data.js` ← `tools/generate_data.py` |
 | Theme (incl. red night palette) | `app/css/style.css` (CSS vars), `PALETTES` in `skymap.js` |
-| Offline behavior | `app/sw.js` — bump `CACHE` version when app files change |
+| Offline behavior | `app/sw.js` (see the `CACHE` rule above) |
 
 ## How to work here
 
@@ -74,4 +81,18 @@ plausible fix, and matching the surrounding code over a new pattern.
   in the fleet: copy `app/` to a clean tree and force-push it. There is no
   deploy workflow on purpose — a shipped release is a thing someone chose to
   do, and the whole fleet does it the same way.
+
+## Deploying the PWA (read, then do, one line at a time)
+
+*What this is for:* putting `app/` on `gh-pages` so an installed copy updates
+the next time it has signal, and still works when it has none.
+
+1. `CACHE` in `app/sw.js` is higher than the one on `gh-pages`
+   (`git show gh-pages:sw.js | grep CACHE`). If not, stop and bump it.
+2. Every file under `app/` is in `ASSETS`, and every test file passes, one
+   file at a time (`node --test test/<file>.test.mjs`).
+3. Copy `app/` to a clean tree, commit as the neutral persona, fetch, then
+   force-push to `gh-pages`.
+4. Fetch the deployed `sw.js` and `index.html` from the live URL and confirm
+   the new `CACHE` name is what is served.
 - **Fetch before push. Atomic commits.** MIT, like the rest of the fleet.

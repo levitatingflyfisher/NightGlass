@@ -69,6 +69,7 @@ The point of this table is that it is allowed to say "no".
 | Dark-window headline (moon-free astronomical night) | **Shipped** — with nautical/civil fallback at latitudes that never get astronomically dark |
 | Naked-eye star chart | **Shipped** — 1,600+ stars to mag 5.0, constellation figures, moon and planets, time slider |
 | Red night mode | **Shipped** — one tap; suggested after dusk, never forced |
+| Light theme / "follow the phone" (the fleet's theme rule) | **Not built, on purpose.** A white screen at a dark campsite undoes dark adaptation, and the phone's setting is the wrong signal; dark and red night only. See [ADR-0006](docs/adr/0006-no-light-theme.md) |
 | Installable PWA | **Shipped** |
 | Location privacy | **Shipped, and structural** — rounded to ~1 km at capture, `localStorage` only. There is nowhere to send it |
 | Android APK | **Not built.** The fleet ships PWA+APK for most apps; NightGlass is web-only today. A WebView shell (the Parlour/Trellis pattern) is the cheap path if it's wanted |
