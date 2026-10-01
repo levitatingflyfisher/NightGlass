@@ -1,7 +1,7 @@
 // Offline-first service worker: precache everything, serve from cache.
 // The asset list is our own local files only — this app never requests
 // anything from any other origin.
-const CACHE = "nightglass-v15";
+const CACHE = "nightglass-v16";
 const ASSETS = [
   "./",
   "./index.html",
